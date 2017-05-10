@@ -1,6 +1,19 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Types where
 
+import Data.Map as M
+import Control.Monad.State
+
+type Loc = Integer
+
+type Store = M.Map Loc Type
+
+type VEnv = M.Map Ident Loc
+
+type FEnv = M.Map Ident FnDef
+
 newtype Ident = Ident String deriving (Eq, Ord, Show, Read)
+
 data Program = Program [TopDef]
   deriving (Eq, Ord, Show, Read)
 
@@ -37,8 +50,8 @@ data Type = Int | Str | Bool | Void | Fun Type [Type]
 data Expr
     = EVar Ident
     | ELitInt Integer
-    | ELitTrue
-    | ELitFalse
+    | ELitTrue Bool
+    | ELitFalse Bool
     | EApp Ident [Expr]
     | EString String
     | Neg Expr
