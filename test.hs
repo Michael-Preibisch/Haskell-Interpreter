@@ -326,3 +326,5 @@ getType typing x = typing x
 
 setType typing x n =
     \y -> if x == y then n else typing y
+
+extStr = EStr "lol"

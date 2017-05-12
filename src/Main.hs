@@ -29,4 +29,4 @@ lookupVar name bindings = fromJust (Map.lookup name bindings)
 sampleBindings = Map.fromList [("count",3), ("1",1), ("b",2)]
 
 main = do
-   putStrLn $ show $ pProgram $ myLexer "int main(int x) { return x + 111; }"
+   putStrLn $ show $ pProgram $ myLexer "int main(int x) { void z; return x + 111; }"
