@@ -7,13 +7,16 @@ import Control.Monad.Reader
 import Control.Monad.Error
 import Control.Monad.Identity
 
-type Loc = Integer
+data Loc = Loc Integer deriving (Show, Eq, Ord)
 
-type Store = M.Map Loc Type
-
+type Store = M.Map Loc ValueType
 type VEnv = M.Map Ident Loc
+type FEnv = M.Map Ident TopDef -- byc moze trzeba stworzyc oddzielny typ dla f-cji
 
-type FEnv = M.Map Ident TopDef
+data Env = Env {
+  varEnv :: VEnv,
+  funEnv :: FEnv
+}
 
 newtype Ident = Ident String deriving (Eq, Ord, Show, Read)
 

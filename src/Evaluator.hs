@@ -11,6 +11,7 @@ import Control.Monad.State
 type Valuation = Ident -> ValueType
 
 evalExp :: Expr -> (ReaderT Valuation (ErrorT String Identity)) ValueType
+
 evalExp (EVar ident) = undefined
 
 evalExp (ELitInt n) = return (VInt n)
