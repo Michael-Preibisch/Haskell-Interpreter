@@ -6,13 +6,25 @@ import Control.Monad.Reader
 import Control.Monad.Error
 import Control.Monad.Identity
 import Control.Monad.State
+import qualified Data.Map as M
 
 -- EVALUATION OF EXPRESSIONS --
 type Valuation = Ident -> ValueType
 
-evalExp :: Expr -> (ReaderT Valuation (ErrorT String Identity)) ValueType
+initEnv = Env {
+  varEnv = M.empty,
+  funEnv = M.empty
+}
 
-evalExp (EVar ident) = undefined
+initStore = M.empty :: Store
+
+evalExp :: Expr -> MM ValueType
+--evalExp :: Expr -> (ReaderT Valuation (ErrorT String Identity)) ValueType
+
+evalExp (EVar ident) = do
+  loc <- asks (\e -> (varEnv e) M.! ident)
+  val <- gets (M.! loc)
+  return val
 
 evalExp (ELitInt n) = return (VInt n)
 
@@ -21,6 +33,8 @@ evalExp ELitTrue = return (VBool True)
 evalExp ELitFalse = return (VBool False)
 
 evalExp (EApp ident exprs) = undefined
+--do
+  --let params = map evalExp exprs
 
 evalExp (EString str) = return (VStr str)
 
@@ -107,9 +121,11 @@ valNeg :: ValueType -> ValueType
 valNeg (VInt n) = VInt (-n)
 
 -- STATEMENTS EXECUTION --
-execStmt Empty = undefined
 
-execStmt (BStmt stmts) = undefined
+execStmt :: Stmt -> MM ()
+execStmt Empty = return ()
+
+execStmt (BStmt (Block stmts)) = head $ map execStmt stmts -- Tutaj jakaś propagacja return
 
 execStmt (Decl type_ items) = undefined
 
@@ -119,11 +135,22 @@ execStmt (Ret expr)= undefined
 
 execStmt VRet = undefined
 
-execStmt (Cond expr stmt)= undefined
+execStmt (Cond expr stmt)= do
+  (VBool b) <- evalExp expr
+  if b then
+    execStmt stmt
+  else
+    return ()
 
-execStmt (CondElse expr1 stmt expr2)= undefined
+execStmt (CondElse expr stmt1 stmt2)= do
+  (VBool b) <- evalExp expr
+  if b then
+    execStmt stmt1
+  else
+    execStmt stmt2
 
-execStmt (While expr stmt) = undefined
+execStmt (While expr stmt) = do
+  execStmt (Cond expr stmt) >> execStmt (While expr stmt)
 
 execStmt (ForTo item expr stmt) = undefined
 
@@ -131,8 +158,11 @@ execStmt (ForDownTo item expr stmt) = undefined
 
 execStmt (SExp expr) = undefined
 
-runEval e = runIdentity (runErrorT (runReaderT (evalExp e) initValuation))
+--runEval e = runIdentity (runErrorT (runReaderT (evalExp e) initValuation))
 initValuation x = error "Wrong!"
+--evalExp' :: Expr -> (ReaderT Valuation (ErrorT String Identity)) ValueType
+
+runEval e = runStateT (runReaderT (evalExp e) initEnv) initStore
 
 extExps = [EAdd (EString "lol") Plus (EString "hehe"),
           EMul (ELitInt 5) Times (Neg (ELitInt 10)),
@@ -140,6 +170,9 @@ extExps = [EAdd (EString "lol") Plus (EString "hehe"),
           EMul (ELitInt 1) Div (ELitInt 0)]
 extStr = EString "lol"
 
+test = testEvals extExps
+
+testEvals exps = Prelude.map testEval exps
 
 testEval e = let res = runEval e
     in case res of
