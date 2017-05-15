@@ -5,6 +5,7 @@ import Control.Monad.Reader
 import Control.Monad.Error
 import Control.Monad.Identity
 import qualified Data.Map as M
+import qualified Data.List as L
 
 type TT = ReaderT Typing (ErrorT String Identity)
 
@@ -20,7 +21,7 @@ data FunTyping = FunTyping {
 data Typing = Typing {
   vEnv :: VEnvT, -- Środowisko dla zmiennych:  "Ident -> Type"
   fEnv :: FEnvT -- Środowisko dla funkcji "Ident -> (Type, [Type])"
-}
+} deriving Show
 
 initTyping :: Typing
 initTyping = Typing {
@@ -28,7 +29,8 @@ initTyping = Typing {
   fEnv = M.empty
 }
 
-
+instance Show FunTyping where
+  show (FunTyping a b) = show a ++ " " ++ show b
 -- EXPRESSIONS CHECK
 
 checkExprType :: Expr -> TT Type
@@ -130,18 +132,21 @@ checkStmtType (Ass ident_ expr) = do
 
 checkStmtType (Ret expr) = undefined
 checkStmtType VRet = undefined
+
 checkStmtType (Cond expr stmt) = do
   e <- checkExprType expr
   if (e /= Bool) then
     error "Type error: Non-boolean condition!"
   else
     checkStmtType stmt
+
 checkStmtType (CondElse expr stmt1 stmt2) = do
   e <- checkExprType expr
   if (e /= Bool) then
     error "Type error: Non-boolean condition!"
   else
     checkStmtType stmt1 >> checkStmtType stmt2
+
 checkStmtType (While expr stmt) = do
   e <- checkExprType expr
   if (e /= Bool) then
@@ -149,14 +154,48 @@ checkStmtType (While expr stmt) = do
   else
     checkStmtType stmt
 
-checkStmtType (ForTo (NoInit ident_) expr stmt) = undefined
+checkStmtType (ForTo (NoInit ident_) expr stmt) = do
+  it <- checkExprType (EVar ident_)
+  e <- checkExprType expr
+  if (it /= Int) || (e /= Bool) then
+    error "Type error: ForTo loop with non-integer iterator or non-bool condition!"
+  else
+    checkStmtType stmt
 
-checkStmtType (ForTo (Init ident_ ex) expr stmt) = undefined
+checkStmtType (ForTo (Init ident_ ex) expr stmt) =  do
+  it <- checkExprType (EVar ident_)
+  ext <- checkExprType ex
+  e <- checkExprType expr
+  if (it /= Int) || (e /= Bool) || (ext /= Int) then
+    error "Type error: ForTo loop with non-integer iterator or non-bool condition!"
+  else
+    checkStmtType stmt
 
-checkStmtType _ = undefined
-checkStmtType _ = undefined
-checkStmtType _ = undefined
+checkStmtType (ForDownTo (NoInit ident_) expr stmt) = do
+  it <- checkExprType (EVar ident_)
+  e <- checkExprType expr
+  if (it /= Int) || (e /= Bool) then
+    error "Type error: ForDownTo loop with non-integer iterator or non-bool condition!"
+  else
+    checkStmtType stmt
 
+
+checkStmtType (ForDownTo (Init ident_ ex) expr stmt) =  do
+  it <- checkExprType (EVar ident_)
+  ext <- checkExprType ex
+  e <- checkExprType expr
+  if (it /= Int) || (e /= Bool) || (ext /= Int) then
+    error "Type error: ForDownTo loop with non-integer iterator or non-bool condition!"
+  else
+    checkStmtType stmt
+
+checkStmtType (SExp expr) = do
+  e <- checkExprType expr
+  x <- ask
+  if (e /= Void) then
+    error "Type error: Non-void expression used as statement!"
+  else
+    return (Just x)
 
 checkStmtListType :: [Stmt] -> TT (Maybe Typing)
 checkStmtListType (h:t) = do
@@ -189,7 +228,39 @@ checkDeclType t (Init ident_ expr) = do
       else
         error "Declaration error: Type of expression do not match with type declared!"
 
+-- CHECK FUNCTION DECLARATIONS
 
+checkTopDefType :: TopDef -> TT (Maybe Typing)
+checkTopDefType (FnDef typ ident_ args (Block body)) = do
+  newEnv <- putFunction typ ident_ args
+  case newEnv of
+    Just e -> local (\_ -> e) (checkStmtType (BStmt (Block body)))
+    Nothing -> error "Declaration error!"
+
+-- Zwróci środowisko zaktualizowane o nową funkcje
+putFunction :: Type -> Ident -> [Arg] -> TT (Maybe Typing)
+putFunction typ ident_ args = do
+  let argsT = checkArgs args
+  let argsM = M.fromList [(k, a) | (Arg a k) <- args]
+  env <- ask
+  case (M.lookup ident_ (fEnv env)) of
+    Just e -> error "Declaration error: Function redeclaration!"
+    Nothing -> return (Just $ Typing (M.union (vEnv env) argsM) (M.insert ident_ (FunTyping typ argsT) (fEnv env)))
+
+checkArgs :: [Arg] -> [Type]
+checkArgs args = if (length $ L.nub [ids | (Arg _ ids ) <- args]) /= length args then
+    error "Declaration error: Function's parameters indentifiers are not unique!"
+  else
+    [tps | (Arg tps _) <- args]
+
+
+-- CHECK PROGRAM
+checkProgram :: Program -> TT (Maybe Typing)
+checkProgram (Program (t:h)) = do
+  env <- checkTopDefType t
+  case env of
+    Nothing -> error "Error with program typecheck!"
+    Just e -> local (\_ -> e) (checkProgram (Program h))
 
 showType :: Type -> String
 showType Int = show "Int"
@@ -201,5 +272,13 @@ runCheck :: Expr -> Either String Type
 runCheck e = runIdentity (runErrorT (runReaderT (checkExprType e) initTyping))
 --initTyping x = Void
 
+
+runProgramCheck p = runIdentity (runErrorT (runReaderT (checkProgram p) initTyping))
+
 extType :: Expr
 extType = EVar (Ident "x")
+
+extArgs = [Arg Int (Ident "x")]
+
+p1 = (Program [])
+extProg = (Program [FnDef Int (Ident "main") [Arg Int (Ident "x")] (Block [Ret (EAdd (EVar (Ident "x")) Plus (ELitInt 111))])])
