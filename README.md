@@ -15,7 +15,7 @@ to run, type
 Mokka is simple, imperative, statically typed language with a syntax similar to C.
 It is inspired by language "Latte" presented in 'Compiler Construction' course @ MIMUW.
 
-It's features contains:
+Language supports:
 
 - Three value types -  Int, Bool, String   and a Void type for procedures.
 - Arithmetic evaluation.
@@ -29,7 +29,10 @@ It's features contains:
 - Functions (returning values) and procedures,  with recursion.
 
 
-# Example program
+# Examples
+
+
+## Example Mokka's code:
 
 ```c++
 
@@ -45,7 +48,7 @@ int fact(int i) {
 }
 
 int main () {
-    int i; // No-assign declaration with defaul value 0.
+    int i; // No-assign declaration with default value 0.
 
     // Factorials of first 10 integers will be printed.
     for i = 1 to (9 + 1) do {
@@ -67,3 +70,5 @@ int main () {
 }
 
 ```
+
+## More examples are in directories ./good  and  ./bad 
