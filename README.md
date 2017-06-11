@@ -75,8 +75,7 @@ int main () {
 
 ```c++
 int main() {
-
-	int i = 666;
+    int i = 666;
     int k;
 
     for k = 10 downto 11 do
@@ -88,8 +87,8 @@ int main() {
     while(2 < 1)
         printString("This will not be executed");
 
-	while(i > 0) {
-		i = i + 1;
+    while(i > 0) {
+        i = i + 1;
         printString("This will be executed... forever!");
     }
 
@@ -97,3 +96,11 @@ int main() {
 }
 
 ```
+
+### More examples are in `./bad/` and `./good/` directories
+
+
+# Author:
+
+### Michał Preibisch
+### michal.preibisch@gmail.com
