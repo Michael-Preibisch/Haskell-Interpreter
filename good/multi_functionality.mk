@@ -1,4 +1,4 @@
-void printInteger(int x) {
+void printInteger(int x) {	// procedure
 	printInt(x);
 	return;
 }
@@ -10,18 +10,21 @@ int fact(int i) {
 }
 
 int main () {
-  int i;
+  int i; // no-assign declaration with defaul value 0
   // Factorials of first 10 integers will be printed.
   for i = 1 to (9 + 1) do {
-      printInt(fact(i)); // Note the functions composition (int -> int -> IO)
+      printInteger(fact(i)); // Note the functions composition (int -> int -> IO)
   }
+
+  string x = "Sample string!"
+  printString(x);
 
   if (i != 10)  // i should have value 10 so this block will not be executed
     printString("This should not be executed!");
   else { 			// if-else statement
     int k;
 	for k = i*i downto stringToInt("10") do 	// built-in function (String -> Int)
-      printString(intToString(k));			// built-in function (Int -> String)
+      printString(intToString(k));				// built-in function (Int -> String)
   }
 
   return 0;
