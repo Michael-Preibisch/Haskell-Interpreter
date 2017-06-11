@@ -32,7 +32,7 @@ Language supports:
 # Examples
 
 
-## Example Mokka's code:
+## Code testing multiple functionalities:
 
 ```c++
 
@@ -71,4 +71,29 @@ int main () {
 
 ```
 
-## More examples are in directories ./good  and  ./bad 
+## Code testing loops:
+
+```c++
+int main() {
+
+	int i = 666;
+    int k;
+
+    for k = 10 downto 11 do
+        printString("This will not be executed!");
+
+    for k = 11 to 10 do
+        printString("This will not be executed");
+
+    while(2 < 1)
+        printString("This will not be executed");
+
+	while(i > 0) {
+		i = i + 1;
+        printString("This will be executed... forever!");
+    }
+
+	return 0;
+}
+
+```
