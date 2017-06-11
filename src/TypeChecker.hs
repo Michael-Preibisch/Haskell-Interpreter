@@ -311,7 +311,7 @@ runCheck :: Expr -> Either String Type
 runCheck e = runIdentity (runErrorT (runReaderT (checkExprType e) initTyping))
 --initTyping x = Void
 
-
+--type TT = ReaderT Typing (ErrorT String Identity)
 runProgramCheck p = runIdentity (runErrorT (runReaderT (checkProgram p) initTyping))
 
 extType :: Expr

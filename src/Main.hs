@@ -14,9 +14,8 @@ parser = pProgram . myLexer
 
 run p = do
   case runProgramCheck p of
-    (Right _) -> do
-      let res = execProgram p
-      putStrLn "ok"
+    (Right _) ->
+      runProgram p
     (Left e) -> error e
 
 main :: IO ()
@@ -27,5 +26,7 @@ main = do
        file:_ -> do
            program <- readFile file
            case parser program of
-               Ok p   -> run p
+               Ok p  -> do
+                 run p
+                 return ()
                Bad e -> error e

@@ -36,6 +36,7 @@ evalExp ELitTrue = return (VBool True)
 evalExp ELitFalse = return (VBool False)
 
 evalExp (EApp ident []) = do
+  liftIO $ putStrLn "EApp ident []"
   st <- get
   env <- ask
   let fun = ((funEnv env) M.! ident)
@@ -43,6 +44,7 @@ evalExp (EApp ident []) = do
   return (retVal env2)
 
 evalExp (EApp ident exprs) = do
+  liftIO $ putStrLn "EApp ident exprs"
   st <- get
   args_val <- mapM evalExp exprs
   env <- ask
@@ -155,26 +157,32 @@ valNeg (VInt n) = VInt (-n)
 
 execStmt :: Stmt -> MM Env
 execStmt Empty = do
+  liftIO $ putStrLn "execStmt"
   env <- ask
   return env
 
 execStmt (BStmt (Block (h:t))) = do
+  liftIO $ putStrLn "execStmt BStmt (Block h)"
   env <- execStmt h
   local (\_ -> env) (execStmt (BStmt (Block t)))
 
 execStmt (BStmt (Block [])) = do
+  liftIO $ putStrLn "execStmt BStmt (Block [])"
   env <- ask
   return env
 
 execStmt (Decl type_ (t:h)) = do
+  liftIO $ putStrLn "execStmt (Decl type_ t)"
   newEnv <- declItem type_ t
   local (\_ -> newEnv) (execStmt (Decl type_ h))
 
 execStmt (Decl type_ []) = do
+  liftIO $ putStrLn "execStmt (Decl type_ [])"
   env <- ask
   return env
 
 execStmt (Ass ident_ expr) = do
+  liftIO $ putStrLn "execStmt (Ass ident_ expr)"
   ev <- evalExp expr
   env <- ask
   let location = (varEnv env) M.! ident_
@@ -182,15 +190,18 @@ execStmt (Ass ident_ expr) = do
   return env
 
 execStmt (Ret expr)= do
+  liftIO $ putStrLn "execStmt (Ret expr)"
   env <- ask
   ev <- evalExp expr
   return (Env (varEnv env) (funEnv env) ev)
 
 execStmt VRet = do
+  liftIO $ putStrLn "execStmt (VRet)"
   env <- ask
   return (Env (varEnv env) (funEnv env) VVoid)
 
-execStmt (Cond expr stmt)= do
+execStmt (Cond expr stmt) = do
+  liftIO $ putStrLn "execStmt (Cond expr stmt)"
   env <- ask
   (VBool b) <- evalExp expr
   if b then
@@ -199,6 +210,7 @@ execStmt (Cond expr stmt)= do
     return env
 
 execStmt (CondElse expr stmt1 stmt2)= do
+  liftIO $ putStrLn "execStmt (CondElse expr stmt1 stmt2)"
   (VBool b) <- evalExp expr
   if b then
     execStmt stmt1
@@ -206,18 +218,22 @@ execStmt (CondElse expr stmt1 stmt2)= do
     execStmt stmt2
 
 execStmt (While expr (BStmt (Block (h:t)))) = do
+  liftIO $ putStrLn "execStmt (While expr BStmt)"
   env <- execStmt (Cond expr h)
   local (\_ -> env) (execStmt (While expr (BStmt (Block t))))
 
 execStmt (While expr (BStmt (Block []))) = do
+  liftIO $ putStrLn "execStmt (While expr [])"
   env <- ask
   return env
 
 execStmt (While expr stmt) = do
+  liftIO $ putStrLn "execStmt While expr stmt"
   env <- execStmt (Cond expr stmt)
   return env
 
 execStmt (ForTo (NoInit ident_) expr stmt) = do
+  liftIO $ putStrLn "execStmt noInit ForTo"
   env <- ask
   (VInt ev) <- evalExp expr
   st <- get
@@ -229,6 +245,7 @@ execStmt (ForTo (NoInit ident_) expr stmt) = do
   else return env
 
 execStmt (ForTo (Init ident_ expr1) expr2 stmt) = do
+  liftIO $ putStrLn "execStmt Init ForTo"
   env <- execStmt (Ass ident_ expr1)
   (VInt ev) <- evalExp expr2
   st <- get
@@ -240,6 +257,7 @@ execStmt (ForTo (Init ident_ expr1) expr2 stmt) = do
   else return env
 
 execStmt (ForDownTo (NoInit ident_) expr stmt) = do
+  liftIO $ putStrLn "execStmt noInit ForDownTo"
   env <- ask
   (VInt ev) <- evalExp expr
   st <- get
@@ -251,6 +269,7 @@ execStmt (ForDownTo (NoInit ident_) expr stmt) = do
   else return env
 
 execStmt (ForDownTo (Init ident_ expr1) expr2 stmt) = do
+  liftIO $ putStrLn "execStmt Init ForDownTo"
   env <- execStmt (Ass ident_ expr1)
   (VInt ev) <- evalExp expr2
   st <- get
@@ -262,12 +281,14 @@ execStmt (ForDownTo (Init ident_ expr1) expr2 stmt) = do
   else return env
 
 execStmt (SExp expr) = do
+  liftIO $ putStrLn "ExecStmt SExp expr"
   env <- ask
   ev <- evalExp expr
   return env
 
 declItem :: Type -> Item -> MM Env
 declItem t (NoInit ident_) = do
+  liftIO $ putStrLn "declItem t NoInit"
   st <- get
   env <- ask
   let newloc = (Loc (M.size st))
@@ -275,6 +296,7 @@ declItem t (NoInit ident_) = do
   return (Env (M.insert ident_ newloc (varEnv env)) (funEnv env) (retVal env))
 
 declItem t (Init ident_ expr) = do
+  liftIO $ putStrLn "declItem t Init"
   st <- get
   env <- ask
   v <- evalExp expr
@@ -291,6 +313,9 @@ defaultVal x = case x of
 
 runEval e = runStateT (runReaderT (evalExp e) initEnv) initStore
 
+runProgram p = runErrorT (runStateT (runReaderT (execProgram p) initEnv) initStore)
+--type MM = ReaderT Env (StateT Store (ErrorT String IO))
+
 execProgram :: Program -> MM Env
 execProgram (Program (t:h)) = do
   liftIO $ putStrLn $ "execProgram t"
@@ -300,7 +325,7 @@ execProgram (Program (t:h)) = do
 execProgram (Program []) = do
   liftIO $ putStrLn $ "execProgram []"
   env <- ask
-  let z = evalExp (EApp (Ident "main") [])
+  local (\_ -> env) (evalExp (EApp (Ident "main") []))
   return env
 
 execTopDef :: TopDef -> MM Env
