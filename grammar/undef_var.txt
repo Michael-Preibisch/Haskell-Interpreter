@@ -1,0 +1,14 @@
+../bad/undefined_var.mk
+
+Parse Successful!
+
+[Abstract Syntax]
+
+Program [FnDef Int (Ident "main") [] (Block [Ret (EVar (Ident "x"))])]
+
+[Linearized tree]
+
+int main () {
+  return x ;
+  }
+

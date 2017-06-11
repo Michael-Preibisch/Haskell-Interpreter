@@ -1,32 +1,31 @@
 import Control.Monad.Reader
 import qualified Data.Map as Map
 import Data.Maybe
-import Types
+import TypeChecker
+import Evaluator
 import LexMokka
+import ErrM
 import ParMokka
-import SkelMokka
 import PrintMokka
-import AbsMokka
+import System.Environment
+import System.IO
 
-type Bindings = Map.Map String Int;
+parser = pProgram . myLexer
 
--- Returns True if the "count" variable contains correct bindings size.
-isCountCorrect :: Bindings -> Bool
-isCountCorrect bindings = runReader calc_isCountCorrect bindings
+run p = do
+  case runProgramCheck p of
+    (Right _) -> do
+      let res = execProgram p
+      putStrLn "ok"
+    (Left e) -> error e
 
--- The Reader monad, which implements this complicated check.
-calc_isCountCorrect :: Reader Bindings Bool
-calc_isCountCorrect = do
-   count <- asks (lookupVar "count")
-   bindings <- ask
-   return (count == (Map.size bindings))
-
--- The selector function to  use with 'asks'.
--- Returns value of the variable with specified name.
-lookupVar :: String -> Bindings -> Int
-lookupVar name bindings = fromJust (Map.lookup name bindings)
-
-sampleBindings = Map.fromList [("count",3), ("1",1), ("b",2)]
-
+main :: IO ()
 main = do
-   putStrLn $ show $ pProgram $ myLexer "int main(int x) { void z; return x + 111; }"
+   file <- getArgs
+   case file of
+       [] -> error "No args provided!"
+       file:_ -> do
+           program <- readFile file
+           case parser program of
+               Ok p   -> run p
+               Bad e -> error e

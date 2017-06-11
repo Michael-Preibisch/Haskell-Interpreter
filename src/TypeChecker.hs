@@ -4,7 +4,7 @@ import Types
 import Control.Monad.Reader
 import Control.Monad.Error
 import Control.Monad.Identity
-import qualified Data.Map as M
+import qualified Data.Map.Lazy as M
 import qualified Data.List as L
 
 type TT = ReaderT Typing (ErrorT String Identity)
@@ -20,13 +20,15 @@ data FunTyping = FunTyping {
 
 data Typing = Typing {
   vEnv :: VEnvT, -- Środowisko dla zmiennych:  "Ident -> Type"
-  fEnv :: FEnvT -- Środowisko dla funkcji "Ident -> (Type, [Type])"
+  fEnv :: FEnvT, -- Środowisko dla funkcji "Ident -> (Type, [Type])"
+  currRet :: Type -- Typ zwracany przez aktualnie badaną funkcję
 } deriving Show
 
 initTyping :: Typing
 initTyping = Typing {
   vEnv = M.empty,
-  fEnv = M.empty
+  fEnv = M.empty,
+  currRet = Void -- Tak naprawde to undefined
 }
 
 instance Show FunTyping where
@@ -57,16 +59,26 @@ checkExprType (EAdd e1 _ e2) = do
 
 checkExprType (EVar iden) = do
   env <- asks (\e -> (vEnv e))
-  return (env M.! iden)
+  case (M.lookup iden env) of
+    Nothing -> error "Error: Undeclared variable!"
+    Just e -> return e
 
 checkExprType (EApp iden args) = do
   fenv <- asks (\e -> (fEnv e))
   argTypes <- mapM checkExprType args
-  let funInfo = fenv M.! iden
-  if (argTypes == argsType funInfo) then
-    return (Fun (retType funInfo) argTypes)
-  else
-    error "Type error: Wrong function parameters!"
+  case (M.lookup iden fenv) of
+    Just e -> if argTypes == argsType e then
+      return (retType e)
+    else
+      error "Type error: Wrong function parameters!"
+    Nothing -> error ("Function " ++ (getName iden) ++ " undeclared!")
+{- let funInfo = (fenv M.! iden)  in case funInfo of
+    Just _ ->  if (argTypes == argsType funInfo) then
+        return (Fun (retType funInfo) argTypes)
+      else
+        error "Type error: Wrong function parameters!"
+    Nothing -> error "Error: Calling non-declared function!"
+-}
 
 checkExprType (Neg expr) = do
   t1 <- checkExprType expr
@@ -130,8 +142,20 @@ checkStmtType (Ass ident_ expr) = do
     else
       error "Declaration error: Types do not match on assign!"
 
-checkStmtType (Ret expr) = undefined
-checkStmtType VRet = undefined
+checkStmtType (Ret expr) = do
+  et <- checkExprType expr
+  env <- ask
+  if (et /= (currRet env)) then
+    error "Return type does not match with function declaration!"
+  else
+    return (Just env)
+
+checkStmtType VRet = do
+  env <- ask
+  if (Void /= (currRet env)) then
+    error "Return type does not match with function declaration!"
+  else
+    return (Just env)
 
 checkStmtType (Cond expr stmt) = do
   e <- checkExprType expr
@@ -157,8 +181,8 @@ checkStmtType (While expr stmt) = do
 checkStmtType (ForTo (NoInit ident_) expr stmt) = do
   it <- checkExprType (EVar ident_)
   e <- checkExprType expr
-  if (it /= Int) || (e /= Bool) then
-    error "Type error: ForTo loop with non-integer iterator or non-bool condition!"
+  if (it /= Int) || (e /= Int) then
+    error ("Type error: ForTo loop with non-integer iterator or condition!" ++ (show e) ++ " " ++ (show it))
   else
     checkStmtType stmt
 
@@ -166,16 +190,16 @@ checkStmtType (ForTo (Init ident_ ex) expr stmt) =  do
   it <- checkExprType (EVar ident_)
   ext <- checkExprType ex
   e <- checkExprType expr
-  if (it /= Int) || (e /= Bool) || (ext /= Int) then
-    error "Type error: ForTo loop with non-integer iterator or non-bool condition!"
+  if (it /= Int) || (e /= Int) || (ext /= Int) then
+    error ("Type error: ForTo loop with non-integer iterator or condition!" ++ (show e) ++ " " ++ (show it))
   else
     checkStmtType stmt
 
 checkStmtType (ForDownTo (NoInit ident_) expr stmt) = do
   it <- checkExprType (EVar ident_)
   e <- checkExprType expr
-  if (it /= Int) || (e /= Bool) then
-    error "Type error: ForDownTo loop with non-integer iterator or non-bool condition!"
+  if (it /= Int) || (e /= Int) then
+    error "Type error: ForDownTo loop with non-integer iterator or condition!"
   else
     checkStmtType stmt
 
@@ -184,8 +208,8 @@ checkStmtType (ForDownTo (Init ident_ ex) expr stmt) =  do
   it <- checkExprType (EVar ident_)
   ext <- checkExprType ex
   e <- checkExprType expr
-  if (it /= Int) || (e /= Bool) || (ext /= Int) then
-    error "Type error: ForDownTo loop with non-integer iterator or non-bool condition!"
+  if (it /= Int) || (e /= Int) || (ext /= Int) then
+    error "Type error: ForDownTo loop with non-integer iterator or condition!"
   else
     checkStmtType stmt
 
@@ -203,6 +227,9 @@ checkStmtListType (h:t) = do
   case newEnv of
     Nothing -> checkStmtListType t
     Just e -> local (\_ -> e) (checkStmtListType t)
+checkStmtListType [] = do
+  env <- ask
+  return (Just env)
 
 checkDeclListType :: Type -> [Item] -> TT (Maybe Typing)
 checkDeclListType t (h:r) = do
@@ -210,31 +237,35 @@ checkDeclListType t (h:r) = do
   case newEnv of
     Nothing -> error "Error with multiple declarations!"
     Just e -> local (\_ -> e) (checkDeclListType t r)
+checkDeclListType _ [] = do
+  env <- ask
+  return (Just env)
 
 checkDeclType :: Type -> Item -> TT (Maybe Typing)
 checkDeclType t (NoInit ident_) = do
   env <- ask
   case (M.lookup ident_ (vEnv env)) of
-    Just e -> error "Declaration error: variable already declared!"
-    Nothing -> return (Just $ Typing (M.insert ident_ t (vEnv env)) (fEnv env))
+    Just _ -> error ("Declaration error: variable " ++ (show t) ++ " " ++ (getName ident_) ++ " already declared!")
+    Nothing -> return (Just $ Typing (M.insert ident_ t (vEnv env)) (fEnv env) (currRet env))
 
 checkDeclType t (Init ident_ expr) = do
   env <- ask
   et <- checkExprType expr
   case (M.lookup ident_ (vEnv env)) of
-    Just e -> error "Declaration error: variable already declared!"
+    Just _ -> error "Declaration error: variable already declared!"
     Nothing -> if (et == t) then
-        return (Just $ Typing (M.insert ident_ t (vEnv env)) (fEnv env))
+        return (Just $ Typing (M.insert ident_ t (vEnv env)) (fEnv env) (currRet env))
       else
         error "Declaration error: Type of expression do not match with type declared!"
 
 -- CHECK FUNCTION DECLARATIONS
 
 checkTopDefType :: TopDef -> TT (Maybe Typing)
-checkTopDefType (FnDef typ ident_ args (Block body)) = do
+checkTopDefType (FnDef typ ident_ args (Block fbody)) = do
+  let argsM = M.fromList [(k, a) | (Arg a k) <- args]
   newEnv <- putFunction typ ident_ args
   case newEnv of
-    Just e -> local (\_ -> e) (checkStmtType (BStmt (Block body)))
+    Just e -> local (\_ -> (Typing (M.union (vEnv e) argsM) (fEnv e) (currRet e))) (checkStmtType (BStmt (Block fbody))) >> return newEnv
     Nothing -> error "Declaration error!"
 
 -- Zwróci środowisko zaktualizowane o nową funkcje
@@ -244,8 +275,10 @@ putFunction typ ident_ args = do
   let argsM = M.fromList [(k, a) | (Arg a k) <- args]
   env <- ask
   case (M.lookup ident_ (fEnv env)) of
-    Just e -> error "Declaration error: Function redeclaration!"
-    Nothing -> return (Just $ Typing (M.union (vEnv env) argsM) (M.insert ident_ (FunTyping typ argsT) (fEnv env)))
+    Just _ -> error "Declaration error: Function redeclaration!"
+    Nothing -> return (Just $ Typing (vEnv env) (M.insert ident_ (FunTyping typ argsT) (fEnv env)) typ)
+
+-- return (Just $ Typing (M.union (vEnv env) argsM) (M.insert ident_ (FunTyping typ argsT) (fEnv env)) typ)
 
 checkArgs :: [Arg] -> [Type]
 checkArgs args = if (length $ L.nub [ids | (Arg _ ids ) <- args]) /= length args then
@@ -261,12 +294,18 @@ checkProgram (Program (t:h)) = do
   case env of
     Nothing -> error "Error with program typecheck!"
     Just e -> local (\_ -> e) (checkProgram (Program h))
+checkProgram (Program []) = do
+  env <- ask
+  return (Just env)
 
 showType :: Type -> String
 showType Int = show "Int"
 showType Bool = show "Bool"
 showType Str = show "Bool"
 showType _ = show "Unknown"
+
+getName :: Ident -> String
+getName (Ident s) = s
 
 runCheck :: Expr -> Either String Type
 runCheck e = runIdentity (runErrorT (runReaderT (checkExprType e) initTyping))
@@ -281,4 +320,6 @@ extType = EVar (Ident "x")
 extArgs = [Arg Int (Ident "x")]
 
 p1 = (Program [])
-extProg = (Program [FnDef Int (Ident "main") [Arg Int (Ident "x")] (Block [Ret (EAdd (EVar (Ident "x")) Plus (ELitInt 111))])])
+p2 = (Program [FnDef Int (Ident "main") [Arg Int (Ident "x")] (Block [Ret (EAdd (EVar (Ident "x")) Plus (ELitInt 111))])])
+p3 = (Program [FnDef Int (Ident "main") [] (Block [ForTo (Init (Ident "i") (ELitInt 1)) (EAdd (ELitInt 9) Plus (ELitInt 1)) (BStmt (Block [CondElse (ERel (EVar (Ident "i")) LE (ELitInt 5)) (SExp (EApp (Ident "printInt") [EApp (Ident "fact") [EVar (Ident "i")]])) (SExp (EApp (Ident "printInt") [EApp (Ident "factr") [EVar (Ident "i")]]))])),Ret (ELitInt 0)])])
+p4 = (Program [FnDef Void (Ident "printInt") [Arg Int (Ident "x")] (Block [VRet]),FnDef Int (Ident "fact") [Arg Int (Ident "i")] (Block [CondElse (ERel (EVar (Ident "i")) LE (EAdd (Neg (ELitInt 7)) Plus (EMul (ELitInt 2) Times (ELitInt 4)))) (Ret (ELitInt 1)) (Ret (EMul (EVar (Ident "i")) Times (EApp (Ident "fact") [EAdd (EVar (Ident "i")) Minus (ELitInt 1)])))]),FnDef Int (Ident "main") [] (Block [Decl Int [NoInit (Ident "i")],ForTo (Init (Ident "i") (ELitInt 1)) (EAdd (ELitInt 9) Plus (ELitInt 1)) (BStmt (Block [SExp (EApp (Ident "printInt") [EApp (Ident "fact") [EVar (Ident "i")]])])),Ret (ELitInt 0)])])

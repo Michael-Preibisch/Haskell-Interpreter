@@ -1,0 +1,16 @@
+../bad/undefined_fun.mk
+
+Parse Successful!
+
+[Abstract Syntax]
+
+Program [FnDef Int (Ident "main") [] (Block [Decl Int [Init (Ident "a") (ELitInt 10),Init (Ident "b") (ELitInt 2)],SExp (EApp (Ident "printInt") [EApp (Ident "multiply") [EVar (Ident "a"),EVar (Ident "b")]]),Ret (ELitInt 0)])]
+
+[Linearized tree]
+
+int main () {
+  int a = 10, b = 2 ;
+  printInt (multiply (a, b)) ;
+  return 0 ;
+  }
+

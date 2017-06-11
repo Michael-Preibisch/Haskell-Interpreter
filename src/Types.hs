@@ -5,11 +5,10 @@ import Data.Map as M
 import Control.Monad.State
 import Control.Monad.Reader
 import Control.Monad.Error
-import Control.Monad.Identity
 
-type MM = ReaderT Env (StateT Store (Either String))
+type MM = ReaderT Env (StateT Store (ErrorT String IO))
 
-data Loc = Loc Integer deriving (Show, Eq, Ord)
+data Loc = Loc Int deriving (Show, Eq, Ord)
 
 type Store = M.Map Loc ValueType
 
@@ -19,12 +18,14 @@ type FEnv = M.Map Ident FunType
 
 data Env = Env {
   varEnv :: VEnv,
-  funEnv :: FEnv
+  funEnv :: FEnv,
+  retVal :: ValueType
 }
 
 data FunType = FunType {
-  ftype :: ValueType,
+  ftype :: Type,
   ident :: Ident,
+  fargs :: [Arg],
   body :: Block
 }
 
