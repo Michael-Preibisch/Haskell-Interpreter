@@ -1,4 +1,4 @@
-# Programming Languages and Paradigms course @ MIMUW
+﻿# Programming Languages and Paradigms course @ MIMUW
 
 Interpreter for a simple C-like imperative language named "Mokka", written in Haskell.
 
@@ -29,7 +29,7 @@ Language supports:
 - Functions (returning values) and procedures,  with recursion.
 
 
-# Examples
+ Parameters passed by value.# Examples
 
 
 ## Code testing multiple functionalities:
