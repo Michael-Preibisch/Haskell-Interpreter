@@ -12,6 +12,6 @@ int h(int x, int y) { 	// This function uses f recursively
 }
 
 int main() {
-	print(h(5, 2));
-	return 0;
+	print(h(5, 2)); // 10 should be printed - f and h are just multiplication
+	return 0;		// where 1 argument is positive.
 }

@@ -38,7 +38,10 @@ evalExp (EApp ident []) = do
   env <- ask
   let fun = ((funEnv env) M.! ident)
   env2 <- local (\e -> (Env (varEnv env) (funEnv e) (retVal e))) (execStmt (BStmt (body fun)))
-  return (retVal env2)
+  if ((retVal env2) == VNone && (retVal env2) /= VVoid) then
+    error "Runtime error: No return in function!"
+  else
+    return (retVal env2)
 
 evalExp (EApp ident exprs) = do
   st <- get
@@ -113,7 +116,8 @@ evalExp (EtoInt expr) = do
     (VInt n) -> return (VInt n)
     (VBool b) -> return (VInt (if b then 1 else 0))
     (VStr s) -> return (VInt i) where
-      i = fst (L.head (reads s ::[(Integer, String)]))
+         i = fst (L.head (let x = (reads s ::[(Integer, String)]) in
+          if (null x) then [(0, "")] else x))
     _ -> error "EtoString error"
 
 -- ARITHMETIC VALUATION
@@ -131,7 +135,7 @@ valMul (VInt n1) (VInt n2) = VInt (n1 * n2)
 valDiv :: ValueType -> ValueType -> MM ValueType
 valDiv (VInt n1) (VInt n2) = do
   if (n2 == 0)
-  then error $ "Error: Division by 0! " ++ (show n1) ++ " " ++ (show n2)
+  then error $ "Error: Division by 0! "
   else return (VInt (n1 `div` n2))
 
 valOr :: ValueType -> ValueType -> ValueType
@@ -182,7 +186,6 @@ execStmt (BStmt (Block (h:t))) = do
     local (\_ -> env) (execStmt (BStmt (Block t)))
   else
     return env
-
 
 execStmt (BStmt (Block [])) = do
   env <- ask

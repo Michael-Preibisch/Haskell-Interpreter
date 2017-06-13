@@ -4,6 +4,7 @@ import Types
 import Control.Monad.Reader
 import Control.Monad.Error
 import Control.Monad.Identity
+import qualified Data.Maybe as Mb
 import qualified Data.Map.Lazy as M
 import qualified Data.List as L
 
@@ -21,6 +22,7 @@ data FunTyping = FunTyping {
 data Typing = Typing {
   vEnv :: VEnvT, -- Środowisko dla zmiennych:  "Ident -> Type"
   fEnv :: FEnvT, -- Środowisko dla funkcji "Ident -> (Type, [Type])"
+  hEnv :: FEnvT, -- Środowisko dla "headerow"
   currRet :: Type -- Typ zwracany przez aktualnie badaną funkcję
 } deriving Show
 
@@ -28,6 +30,7 @@ initTyping :: Typing
 initTyping = Typing {
   vEnv = M.empty,
   fEnv = M.empty,
+  hEnv = M.empty,
   currRet = None
 }
 
@@ -65,9 +68,9 @@ checkExprType (EVar iden) = do
     Just e -> return e
 
 checkExprType (EApp iden args) = do
-  fenv <- asks (\e -> (fEnv e))
+  henv <- asks (\e -> (hEnv e))
   argTypes <- mapM checkExprType args
-  case (M.lookup iden fenv) of
+  case (M.lookup iden henv) of
     Just e -> if argTypes == argsType e then
       return (retType e)
     else
@@ -262,7 +265,7 @@ checkDeclType t (NoInit ident_) = do
   env <- ask
   case (M.lookup ident_ (vEnv env)) of
     Just _ -> error ("Declaration error: variable " ++ (show t) ++ " " ++ (getName ident_) ++ " already declared!")
-    Nothing -> return (Just $ Typing (M.insert ident_ t (vEnv env)) (fEnv env) (currRet env))
+    Nothing -> return (Just $ Typing (M.insert ident_ t (vEnv env)) (fEnv env) (hEnv env) (currRet env))
 
 checkDeclType t (Init ident_ expr) = do
   env <- ask
@@ -270,7 +273,7 @@ checkDeclType t (Init ident_ expr) = do
   case (M.lookup ident_ (vEnv env)) of
     Just _ -> error "Declaration error: variable already declared!"
     Nothing -> if (et == t) then
-        return (Just $ Typing (M.insert ident_ t (vEnv env)) (fEnv env) (currRet env))
+        return (Just $ Typing (M.insert ident_ t (vEnv env)) (fEnv env) (hEnv env) (currRet env))
       else
         error "Declaration error: Type of expression do not match with type declared!"
 
@@ -281,7 +284,7 @@ checkTopDefType (FnDef typ ident_ args (Block fbody)) = do
   let argsM = M.fromList [(k, a) | (Arg a k) <- args]
   newEnv <- putFunction typ ident_ args
   case newEnv of
-    Just e -> local (\_ -> (Typing (M.union (vEnv e) argsM) (fEnv e) (currRet e))) (checkStmtType (BStmt (Block fbody))) >> return newEnv
+    Just e -> local (\_ -> (Typing (M.union (vEnv e) argsM) (fEnv e) (hEnv e) (currRet e))) (checkStmtType (BStmt (Block fbody))) >> return newEnv
     Nothing -> error "Declaration error!"
 
 -- Zwróci środowisko zaktualizowane o nową funkcje
@@ -292,7 +295,7 @@ putFunction typ ident_ args = do
   env <- ask
   case (M.lookup ident_ (fEnv env)) of
     Just _ -> error "Declaration error: Function redeclaration!"
-    Nothing -> return (Just $ Typing (vEnv env) (M.insert ident_ (FunTyping typ argsT) (fEnv env)) typ)
+    Nothing -> return (Just $ Typing (vEnv env) (M.insert ident_ (FunTyping typ argsT) (fEnv env)) (hEnv env) typ)
 
 checkArgs :: [Arg] -> [Type]
 checkArgs args = if (length $ L.nub [ids | (Arg _ ids ) <- args]) /= length args then
@@ -300,12 +303,38 @@ checkArgs args = if (length $ L.nub [ids | (Arg _ ids ) <- args]) /= length args
   else
     [tps | (Arg tps _) <- args]
 
+registerAllFunctions :: [TopDef] -> TT (Maybe Typing)
+registerAllFunctions [] = do
+  env <- ask
+  return $ Just env
+registerAllFunctions (h:t) = do
+  env <- registerFunctionHeader h
+  case env of
+    Just e -> local (\_ -> e) (registerAllFunctions t)
+    Nothing -> error "Error in function headers declaration!"
+
+registerFunctionHeader :: TopDef -> TT (Maybe Typing)
+registerFunctionHeader (FnDef typ ident_ args _) = do
+  let argsM = M.fromList [(k, a) | (Arg a k) <- args]
+  newEnv <- putFunctionH typ ident_ args
+  return newEnv
+
+putFunctionH :: Type -> Ident -> [Arg] -> TT (Maybe Typing)
+putFunctionH typ ident_ args = do
+  let argsT = checkArgs args
+  let argsM = M.fromList [(k, a) | (Arg a k) <- args]
+  env <- ask
+  case (M.lookup ident_ (fEnv env)) of
+    Just _ -> error "Declaration error: Function redeclaration!"
+    Nothing -> return (Just $ Typing (vEnv env) (fEnv env) (M.insert ident_ (FunTyping typ argsT) (hEnv env)) typ)
+
 
 -- CHECK PROGRAM
 checkProgram :: Program -> TT (Maybe Typing)
 checkProgram (Program (t:h)) = do
-  env <- checkTopDefType t
-  case env of
+  env <- registerAllFunctions (t:h)
+  env1 <- local (\_ -> Mb.fromJust env) (checkTopDefType t)
+  case env1 of
     Nothing -> error "Error with program typecheck!"
     Just e -> local (\_ -> e) (checkProgram (Program h))
 checkProgram (Program []) = do

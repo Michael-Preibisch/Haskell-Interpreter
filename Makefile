@@ -6,4 +6,5 @@ all:
 
 clean:
 	-rm -f *.log *.aux *.hi *.o *.dvi
+	-rm Interpreter
 	cd ./src && $(MAKE) clean
