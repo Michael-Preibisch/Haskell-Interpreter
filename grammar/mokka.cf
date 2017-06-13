@@ -79,6 +79,10 @@ EApp.      Expr6 ::= Ident "(" [Expr] ")" ;
 
 EString.   Expr6 ::= String ;
 
+EtoString.   Expr5 ::= "toString(" Expr6 ")" ;
+
+EtoInt.      Expr5 ::= "toInt(" Expr6 ")" ;
+
 Neg.       Expr5 ::= "-" Expr6 ;
 
 Not.       Expr5 ::= "!" Expr6 ;
@@ -92,10 +96,6 @@ ERel.      Expr2 ::= Expr2 RelOp Expr3 ;
 EAnd.      Expr1 ::= Expr2 "&&" Expr1 ;
 
 EOr.       Expr ::= Expr1 "||" Expr ;
-
-EtoString.   Expr ::= "toString(" Expr ")" ;
-
-EtoInt.      Expr ::= "toInt(" Expr ")" ;
 
 coercions  Expr 6 ;
 

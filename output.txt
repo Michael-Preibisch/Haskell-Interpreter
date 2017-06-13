@@ -1,1 +1,0 @@
-Ok (Program [FnDef Int (Ident "main") [Arg Int (Ident "x")] (Block [Ret (EAdd (EVar (Ident "x")) Plus (ELitInt 111))])])

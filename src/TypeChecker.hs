@@ -28,7 +28,7 @@ initTyping :: Typing
 initTyping = Typing {
   vEnv = M.empty,
   fEnv = M.empty,
-  currRet = Void -- Tak naprawde to undefined
+  currRet = None
 }
 
 instance Show FunTyping where
@@ -49,14 +49,14 @@ checkExprType (EMul e1 _ e2) = do
     t1 <- checkExprType e1
     t2 <- checkExprType e2
     if (t1 == Int && t2 == Int) then return Int
-    else fail ("Type error: trying to multiply/divide " ++ show t1 ++ " and " ++ show t2 ++ ".")
+    else error ("Type error: trying to multiply/divide " ++ show t1 ++ " and " ++ show t2 ++ ".")
 
 checkExprType (EAdd e1 _ e2) = do
     t1 <- checkExprType e1
     t2 <- checkExprType e2
     if (t1 == Int && t2 == Int) then return Int
     else if (t1 == Str && t2 == Str) then return Str
-    else fail ("Type error: Trying to add/substract " ++ show t1 ++ " and " ++ show t2 ++ ".")
+    else error ("Type error: Trying to add/substract " ++ show t1 ++ " and " ++ show t2 ++ ".")
 
 checkExprType (EVar iden) = do
   env <- asks (\e -> (vEnv e))

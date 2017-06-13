@@ -1,1 +1,0 @@
-Ok (Program [FnDef Int (Ident "main") [] (Block [ForTo (Init (Ident "i") (ELitInt 1)) (EAdd (ELitInt 9) Plus (ELitInt 1)) (BStmt (Block [CondElse (ERel (EVar (Ident "i")) LE (ELitInt 5)) (SExp (EApp (Ident "printInt") [EApp (Ident "fact") [EVar (Ident "i")]])) (SExp (EApp (Ident "printInt") [EApp (Ident "factr") [EVar (Ident "i")]]))])),Ret (ELitInt 0)])])

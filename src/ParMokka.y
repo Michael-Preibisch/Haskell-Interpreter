@@ -2,7 +2,7 @@
 {
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns -fno-warn-overlapping-patterns #-}
 module ParMokka where
-import AbsMokka
+import Types
 import LexMokka
 import ErrM
 
@@ -63,89 +63,88 @@ Integer :: { Integer } : L_integ  { (read ( $1)) :: Integer }
 String  :: { String }  : L_quoted {  $1 }
 
 Program :: { Program }
-Program : ListTopDef { AbsMokka.Program $1 }
+Program : ListTopDef { Types.Program $1 }
 TopDef :: { TopDef }
-TopDef : Type Ident '(' ListArg ')' Block { AbsMokka.FnDef $1 $2 $4 $6 }
+TopDef : Type Ident '(' ListArg ')' Block { Types.FnDef $1 $2 $4 $6 }
 ListTopDef :: { [TopDef] }
 ListTopDef : TopDef { (:[]) $1 } | TopDef ListTopDef { (:) $1 $2 }
 Arg :: { Arg }
-Arg : Type Ident { AbsMokka.Arg $1 $2 }
+Arg : Type Ident { Types.Arg $1 $2 }
 ListArg :: { [Arg] }
 ListArg : {- empty -} { [] }
         | Arg { (:[]) $1 }
         | Arg ',' ListArg { (:) $1 $3 }
 Block :: { Block }
-Block : '{' ListStmt '}' { AbsMokka.Block (reverse $2) }
+Block : '{' ListStmt '}' { Types.Block (reverse $2) }
 ListStmt :: { [Stmt] }
 ListStmt : {- empty -} { [] } | ListStmt Stmt { flip (:) $1 $2 }
 Stmt :: { Stmt }
-Stmt : ';' { AbsMokka.Empty }
-     | Block { AbsMokka.BStmt $1 }
-     | Type ListItem ';' { AbsMokka.Decl $1 $2 }
-     | Ident '=' Expr ';' { AbsMokka.Ass $1 $3 }
-     | 'return' Expr ';' { AbsMokka.Ret $2 }
-     | 'return' ';' { AbsMokka.VRet }
-     | 'if' '(' Expr ')' Stmt 'else' Stmt { AbsMokka.CondElse $3 $5 $7 }
-     | 'if' '(' Expr ')' Stmt { AbsMokka.Cond $3 $5 }
-     | 'while' '(' Expr ')' Stmt { AbsMokka.While $3 $5 }
-     | 'for' Item 'to' Expr 'do' Stmt { AbsMokka.ForTo $2 $4 $6 }
-     | 'for' Item 'downto' Expr 'do' Stmt { AbsMokka.ForDownTo $2 $4 $6 }
-     | 'print(' Expr ')' { AbsMokka.SPrint $2 }
-     | Expr ';' { AbsMokka.SExp $1 }
+Stmt : ';' { Types.Empty }
+     | Block { Types.BStmt $1 }
+     | Type ListItem ';' { Types.Decl $1 $2 }
+     | Ident '=' Expr ';' { Types.Ass $1 $3 }
+     | 'return' Expr ';' { Types.Ret $2 }
+     | 'return' ';' { Types.VRet }
+     | 'if' '(' Expr ')' Stmt 'else' Stmt { Types.CondElse $3 $5 $7 }
+     | 'if' '(' Expr ')' Stmt { Types.Cond $3 $5 }
+     | 'while' '(' Expr ')' Stmt { Types.While $3 $5 }
+     | 'for' Item 'to' Expr 'do' Stmt { Types.ForTo $2 $4 $6 }
+     | 'for' Item 'downto' Expr 'do' Stmt { Types.ForDownTo $2 $4 $6 }
+     | 'print(' Expr ')' { Types.SPrint $2 }
+     | Expr ';' { Types.SExp $1 }
 Item :: { Item }
-Item : Ident { AbsMokka.NoInit $1 }
-     | Ident '=' Expr { AbsMokka.Init $1 $3 }
+Item : Ident { Types.NoInit $1 }
+     | Ident '=' Expr { Types.Init $1 $3 }
 ListItem :: { [Item] }
 ListItem : Item { (:[]) $1 } | Item ',' ListItem { (:) $1 $3 }
 Type :: { Type }
-Type : 'int' { AbsMokka.Int }
-     | 'string' { AbsMokka.Str }
-     | 'boolean' { AbsMokka.Bool }
-     | 'void' { AbsMokka.Void }
+Type : 'int' { Types.Int }
+     | 'string' { Types.Str }
+     | 'boolean' { Types.Bool }
+     | 'void' { Types.Void }
 ListType :: { [Type] }
 ListType : {- empty -} { [] }
          | Type { (:[]) $1 }
          | Type ',' ListType { (:) $1 $3 }
 Expr6 :: { Expr }
-Expr6 : Ident { AbsMokka.EVar $1 }
-      | Integer { AbsMokka.ELitInt $1 }
-      | 'true' { AbsMokka.ELitTrue }
-      | 'false' { AbsMokka.ELitFalse }
-      | Ident '(' ListExpr ')' { AbsMokka.EApp $1 $3 }
-      | String { AbsMokka.EString $1 }
+Expr6 : Ident { Types.EVar $1 }
+      | Integer { Types.ELitInt $1 }
+      | 'true' { Types.ELitTrue }
+      | 'false' { Types.ELitFalse }
+      | Ident '(' ListExpr ')' { Types.EApp $1 $3 }
+      | String { Types.EString $1 }
       | '(' Expr ')' { $2 }
 Expr5 :: { Expr }
-Expr5 : '-' Expr6 { AbsMokka.Neg $2 }
-      | '!' Expr6 { AbsMokka.Not $2 }
+Expr5 : 'toString(' Expr6 ')' { Types.EtoString $2 }
+      | 'toInt(' Expr6 ')' { Types.EtoInt $2 }
+      | '-' Expr6 { Types.Neg $2 }
+      | '!' Expr6 { Types.Not $2 }
       | Expr6 { $1 }
 Expr4 :: { Expr }
-Expr4 : Expr4 MulOp Expr5 { AbsMokka.EMul $1 $2 $3 } | Expr5 { $1 }
+Expr4 : Expr4 MulOp Expr5 { Types.EMul $1 $2 $3 } | Expr5 { $1 }
 Expr3 :: { Expr }
-Expr3 : Expr3 AddOp Expr4 { AbsMokka.EAdd $1 $2 $3 } | Expr4 { $1 }
+Expr3 : Expr3 AddOp Expr4 { Types.EAdd $1 $2 $3 } | Expr4 { $1 }
 Expr2 :: { Expr }
-Expr2 : Expr2 RelOp Expr3 { AbsMokka.ERel $1 $2 $3 } | Expr3 { $1 }
+Expr2 : Expr2 RelOp Expr3 { Types.ERel $1 $2 $3 } | Expr3 { $1 }
 Expr1 :: { Expr }
-Expr1 : Expr2 '&&' Expr1 { AbsMokka.EAnd $1 $3 } | Expr2 { $1 }
+Expr1 : Expr2 '&&' Expr1 { Types.EAnd $1 $3 } | Expr2 { $1 }
 Expr :: { Expr }
-Expr : Expr1 '||' Expr { AbsMokka.EOr $1 $3 }
-     | 'toString(' Expr ')' { AbsMokka.EtoString $2 }
-     | 'toInt(' Expr ')' { AbsMokka.EtoInt $2 }
-     | Expr1 { $1 }
+Expr : Expr1 '||' Expr { Types.EOr $1 $3 } | Expr1 { $1 }
 ListExpr :: { [Expr] }
 ListExpr : {- empty -} { [] }
          | Expr { (:[]) $1 }
          | Expr ',' ListExpr { (:) $1 $3 }
 AddOp :: { AddOp }
-AddOp : '+' { AbsMokka.Plus } | '-' { AbsMokka.Minus }
+AddOp : '+' { Types.Plus } | '-' { Types.Minus }
 MulOp :: { MulOp }
-MulOp : '*' { AbsMokka.Times } | '/' { AbsMokka.Div }
+MulOp : '*' { Types.Times } | '/' { Types.Div }
 RelOp :: { RelOp }
-RelOp : '<' { AbsMokka.LTH }
-      | '<=' { AbsMokka.LE }
-      | '>' { AbsMokka.GTH }
-      | '>=' { AbsMokka.GE }
-      | '==' { AbsMokka.EQU }
-      | '!=' { AbsMokka.NE }
+RelOp : '<' { Types.LTH }
+      | '<=' { Types.LE }
+      | '>' { Types.GTH }
+      | '>=' { Types.GE }
+      | '==' { Types.EQU }
+      | '!=' { Types.NE }
 {
 
 returnM :: a -> Err a
@@ -156,7 +155,7 @@ thenM = (>>=)
 
 happyError :: [Token] -> Err a
 happyError ts =
-  Bad $ "syntax error at " ++ tokenPos ts ++ 
+  Bad $ "syntax error at " ++ tokenPos ts ++
   case ts of
     [] -> []
     [Err _] -> " due to lexer error"
@@ -164,4 +163,3 @@ happyError ts =
 
 myLexer = tokens
 }
-

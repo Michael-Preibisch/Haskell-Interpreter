@@ -34,7 +34,6 @@ evalExp ELitTrue = return (VBool True)
 evalExp ELitFalse = return (VBool False)
 
 evalExp (EApp ident []) = do
-  liftIO $ putStrLn $ "EApp ident []" ++ show ident
   st <- get
   env <- ask
   let fun = ((funEnv env) M.! ident)
@@ -42,7 +41,6 @@ evalExp (EApp ident []) = do
   return (retVal env2)
 
 evalExp (EApp ident exprs) = do
-  liftIO $ putStrLn $ "EApp ident exprs " ++ show ident
   st <- get
   env <- ask
   args_val <- mapM evalExp exprs
@@ -74,7 +72,7 @@ evalExp (EMul e1 Times e2) = do
 evalExp (EMul e1 Div e2) = do
   v1 <- evalExp e1
   v2 <- evalExp e2
-  return (valDiv v1 v2)
+  (valDiv v1 v2)
 
 evalExp (EAdd e1 Plus e2) = do
   v1 <- evalExp e1
@@ -130,11 +128,11 @@ valSub (VInt n1) (VInt n2) = VInt (n1 - n2)
 valMul :: ValueType -> ValueType -> ValueType
 valMul (VInt n1) (VInt n2) = VInt (n1 * n2)
 
-valDiv :: ValueType -> ValueType -> ValueType
-valDiv (VInt n1) (VInt n2) =
-  if n2 /= 0
-  then VInt (n1 `div` n2)
-  else error "Error: Division by 0!"
+valDiv :: ValueType -> ValueType -> MM ValueType
+valDiv (VInt n1) (VInt n2) = do
+  if (n2 == 0)
+  then error $ "Error: Division by 0! " ++ (show n1) ++ " " ++ (show n2)
+  else return (VInt (n1 `div` n2))
 
 valOr :: ValueType -> ValueType -> ValueType
 valOr (VBool v1) (VBool v2) = VBool (v1 || v2)
@@ -174,6 +172,7 @@ execStmt (SPrint expr) = do
     (VBool e) -> liftIO $ putStrLn $ show e
     (VInt n) -> liftIO $ putStrLn $ show n
     (VStr s) -> liftIO $ putStrLn $ s
+    e -> error $ "Printing unknown type " ++ show e
   env <- ask
   return env
 
@@ -330,6 +329,5 @@ execProgram (Program []) = do
 
 execTopDef :: TopDef -> MM Env
 execTopDef (FnDef typ ident args body) = do
-  liftIO $ putStrLn $ "TopDef"
   env <- ask
   return (Env (varEnv env) (M.insert ident (FunType typ ident args body) (funEnv env)) (retVal env))

@@ -62,7 +62,7 @@ data Stmt
 data Item = NoInit Ident | Init Ident Expr
   deriving (Eq, Ord, Show, Read)
 
-data Type = Int | Str | Bool | Void | Fun Type [Type]
+data Type = Int | Str | Bool | Void | Fun Type [Type] | None
   deriving (Eq, Ord, Show, Read)
 
 data ValueType = VInt Integer | VStr String | VBool Bool | VVoid | VNone
