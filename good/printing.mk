@@ -2,11 +2,10 @@ string f() {
 	return "Hello world!";
 }
 
-void g() {
-	int x;
-	x = 10;
-	print(x);
+int g(int x, int y) {
+	return x - y;
 }
+
 
 boolean h() {
 	if (1 < 2) {
@@ -18,9 +17,22 @@ boolean h() {
 	}
 }
 
+boolean x() {
+	return !h();
+}
+
+int rec(int x) {
+	if (x < 1) {
+		return 0;
+	}
+	print("------")
+	print(x);
+	print("----- after_else");
+	return x + rec(x - 1);
+}
+
+
 int main() {
-	print(f());
-	g();
-	print(h());
+	print(rec(3));
 	return 42;
 }

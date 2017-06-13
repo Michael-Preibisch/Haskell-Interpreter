@@ -52,9 +52,13 @@ evalExp (EApp ident exprs) = do
   let newlocs = [ (Loc i) | i <- [-(length exprs)..(-1)]]
   let idents = [ids | (Arg _ ids) <- (fargs fun)]
   let args = zip newlocs args_val
+  liftIO $ putStrLn $ "args " ++ show args
   let st1 = M.fromList args
   let env1 = M.fromList $ zip idents newlocs
+  liftIO $ putStrLn $ "env1 " ++ show env1
   modify (\_ -> M.union st st1)
+  liftIO $ putStrLn $ "st1 " ++ show st1
+  liftIO $ putStrLn $ "env2 " ++ show (M.union (varEnv env) env1)
   env2 <- local (\e -> (Env (M.union (varEnv env) env1) (funEnv e) (retVal e))) (execStmt (BStmt (body fun)))
   return (retVal env2)
 
@@ -181,7 +185,7 @@ execStmt (SPrint expr) = do
   liftIO $ putStrLn "ExecStmt SPrint expr"
   e <- evalExp expr
   case e of
-    (VBool e) -> liftIO $ putStrLn $ "printing " ++  show e
+    (VBool e) -> liftIO $ putStrLn $ show e
     (VInt n) -> liftIO $ putStrLn $ show n
     (VStr s) -> liftIO $ putStrLn $ s
   env <- ask
