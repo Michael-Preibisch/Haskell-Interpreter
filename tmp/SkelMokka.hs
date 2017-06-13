@@ -32,12 +32,11 @@ transStmt x = case x of
   Ass ident expr -> failure x
   Ret expr -> failure x
   VRet -> failure x
-  CondElse expr stmt1 stmt2 -> failure x
   Cond expr stmt -> failure x
+  CondElse expr stmt1 stmt2 -> failure x
   While expr stmt -> failure x
   ForTo item expr stmt -> failure x
   ForDownTo item expr stmt -> failure x
-  SPrint expr -> failure x
   SExp expr -> failure x
 transItem :: Item -> Result
 transItem x = case x of
@@ -65,8 +64,6 @@ transExpr x = case x of
   ERel expr1 relop expr2 -> failure x
   EAnd expr1 expr2 -> failure x
   EOr expr1 expr2 -> failure x
-  EtoString expr -> failure x
-  EtoInt expr -> failure x
 transAddOp :: AddOp -> Result
 transAddOp x = case x of
   Plus -> failure x
@@ -83,4 +80,3 @@ transRelOp x = case x of
   GE -> failure x
   EQU -> failure x
   NE -> failure x
-

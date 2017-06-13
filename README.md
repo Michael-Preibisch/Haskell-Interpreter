@@ -22,7 +22,7 @@ Language supports:
 - While loop construction.
 - Pascal-like  `for _ to _ do ` and `for _ downto _ do`  loops construction.
 - `If` and `if-else` constructions.
-- Built-in printing procedures:  printInt, printString, printBool.
+- Built-in printing procedures:  print, print, printBool.
 - Built-in conversion functions:  stringToInt, intToString.
 - Static typing (program is checked for type correctness before evaluation).
 - Runtime error handling (such as division by 0).
@@ -37,7 +37,7 @@ Language supports:
 ```c++
 
 void printInteger(int x) {	// Procedure.
-    printInt(x);
+    print(x);
     return;
 }
 
@@ -56,14 +56,14 @@ int main () {
     }
 
     string x = "Sample string!"     // Declaration with assign.
-    printString(x);
+    print(x);
 
     if (i != 10)  // i should have value 10 so this block will not be executed
-        printString("This should not be executed!");
+        print("This should not be executed!");
     else { 			// if-else statement
     int k;
     for k = i*i downto stringToInt("10") do     // built-in function (String -> Int)
-        printString(intToString(k));            // built-in function (Int -> String)
+        print(intToString(k));            // built-in function (Int -> String)
     }
 
     return 0;
@@ -79,17 +79,17 @@ int main() {
     int k;
 
     for k = 10 downto 11 do
-        printString("This will not be executed!");
+        print("This will not be executed!");
 
     for k = 11 to 10 do
-        printString("This will not be executed");
+        print("This will not be executed");
 
     while(2 < 1)
-        printString("This will not be executed");
+        print("This will not be executed");
 
     while(i > 0) {
         i = i + 1;
-        printString("This will be executed... forever!");
+        print("This will be executed... forever!");
     }
 
 	return 0;

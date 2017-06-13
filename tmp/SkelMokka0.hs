@@ -32,7 +32,7 @@ transStmt x = case x of
   Ass ident expr -> failure x
   Ret expr -> failure x
   VRet -> failure x
-  CondElse expr stmt1 stmt2 -> failure x
+  CondElse expr block1 block2 -> failure x
   Cond expr stmt -> failure x
   While expr stmt -> failure x
   ForTo item expr stmt -> failure x

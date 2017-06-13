@@ -16,7 +16,7 @@ type Valuation = Ident -> ValueType
 initEnv = Env {
   varEnv = M.empty,
   funEnv = M.empty,
-  retVal = VVoid
+  retVal = VNone
 }
 
 initStore = M.empty :: Store
@@ -36,7 +36,7 @@ evalExp ELitTrue = return (VBool True)
 evalExp ELitFalse = return (VBool False)
 
 evalExp (EApp ident []) = do
-  liftIO $ putStrLn "EApp ident []"
+  liftIO $ putStrLn $ "EApp ident []" ++ show ident
   st <- get
   env <- ask
   let fun = ((funEnv env) M.! ident)
@@ -44,7 +44,7 @@ evalExp (EApp ident []) = do
   return (retVal env2)
 
 evalExp (EApp ident exprs) = do
-  liftIO $ putStrLn "EApp ident exprs"
+  liftIO $ putStrLn $ "EApp ident exprs " ++ show ident
   st <- get
   args_val <- mapM evalExp exprs
   env <- ask
@@ -111,6 +111,22 @@ evalExp (EOr e1 e2) = do
   v2 <- evalExp e2
   return (valOr v1 v2)
 
+evalExp (EtoString expr) = do
+  e <- evalExp expr
+  case e of
+    (VInt n) -> return (VStr (show n))
+    (VBool b) -> return (VStr (show b))
+    (VStr s) -> return (VStr s)
+    _ -> error "EtoString error"
+
+evalExp (EtoInt expr) = do
+  e <- evalExp expr
+  case e of
+    (VInt n) -> return (VInt n)
+    (VBool b) -> return (VInt (if b then 1 else 0))
+    (VStr s) -> return (VStr s)
+    _ -> error "EtoString error"
+
 -- ARITHMETIC VALUATION
 valAdd :: ValueType -> ValueType -> ValueType
 valAdd (VInt n1) (VInt n2) = VInt (n1 + n2)
@@ -136,9 +152,9 @@ valAnd (VBool v1) (VBool v2) = VBool (v1 && v2)
 
 valRel :: ValueType -> RelOp -> ValueType -> ValueType
 valRel v1 op v2 = case (v1, v2) of
-  (VInt i1, VInt i2) -> valRel' v1 op v1
-  (VStr s1, VStr s2) -> valRel' v1 op v1
-  (VBool b1, VBool b2) -> valRel' v1 op v1
+  (VInt i1, VInt i2) -> valRel' v1 op v2
+  (VStr s1, VStr s2) -> valRel' v1 op v2
+  (VBool b1, VBool b2) -> valRel' v1 op v2
   (_, _) -> error "Incorrect relation types!"
 
 valRel' :: ValueType -> RelOp -> ValueType -> ValueType
@@ -158,6 +174,16 @@ valNeg (VInt n) = VInt (-n)
 execStmt :: Stmt -> MM Env
 execStmt Empty = do
   liftIO $ putStrLn "execStmt"
+  env <- ask
+  return env
+
+execStmt (SPrint expr) = do
+  liftIO $ putStrLn "ExecStmt SPrint expr"
+  e <- evalExp expr
+  case e of
+    (VBool e) -> liftIO $ putStrLn $ "printing " ++  show e
+    (VInt n) -> liftIO $ putStrLn $ show n
+    (VStr s) -> liftIO $ putStrLn $ s
   env <- ask
   return env
 
@@ -189,10 +215,10 @@ execStmt (Ass ident_ expr) = do
   modify (M.adjust (\_ -> ev) location)
   return env
 
-execStmt (Ret expr)= do
-  liftIO $ putStrLn "execStmt (Ret expr)"
+execStmt (Ret expr) = do
   env <- ask
   ev <- evalExp expr
+  liftIO $ putStrLn $ "execStmt Ret expr: " ++ (show ev)
   return (Env (varEnv env) (funEnv env) ev)
 
 execStmt VRet = do
@@ -217,11 +243,24 @@ execStmt (CondElse expr stmt1 stmt2)= do
   else
     execStmt stmt2
 
+{-
 execStmt (While expr (BStmt (Block (h:t)))) = do
   liftIO $ putStrLn "execStmt (While expr BStmt)"
   env <- execStmt (Cond expr h)
   local (\_ -> env) (execStmt (While expr (BStmt (Block t))))
+-}
 
+execStmt (While expr stmt) = do
+  liftIO $ putStrLn "execStmt (While expr BStmt)"
+  (VBool b) <- evalExp expr
+  if b then do
+    env <- execStmt stmt
+    local (\_ -> env) (execStmt (While expr stmt))
+  else do
+    env <- ask
+    return env
+
+{-
 execStmt (While expr (BStmt (Block []))) = do
   liftIO $ putStrLn "execStmt (While expr [])"
   env <- ask
@@ -231,6 +270,7 @@ execStmt (While expr stmt) = do
   liftIO $ putStrLn "execStmt While expr stmt"
   env <- execStmt (Cond expr stmt)
   return env
+-}
 
 execStmt (ForTo (NoInit ident_) expr stmt) = do
   liftIO $ putStrLn "execStmt noInit ForTo"
@@ -251,6 +291,8 @@ execStmt (ForTo (Init ident_ expr1) expr2 stmt) = do
   st <- get
   let loc = (varEnv env) M.! ident_
   let (VInt it_val) = (st M.! loc)
+  liftIO $ putStrLn $ show it_val
+  liftIO $ putStrLn $ show ev
   if (it_val <= ev)
   then let newEnv = execStmt stmt in
     modify (M.adjust (\_ -> (VInt (it_val + 1))) loc) >> return env
@@ -285,6 +327,7 @@ execStmt (SExp expr) = do
   env <- ask
   ev <- evalExp expr
   return env
+
 
 declItem :: Type -> Item -> MM Env
 declItem t (NoInit ident_) = do

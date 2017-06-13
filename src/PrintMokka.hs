@@ -110,11 +110,12 @@ instance Print Stmt where
     Ass id expr -> prPrec i 0 (concatD [prt 0 id, doc (showString "="), prt 0 expr, doc (showString ";")])
     Ret expr -> prPrec i 0 (concatD [doc (showString "return"), prt 0 expr, doc (showString ";")])
     VRet -> prPrec i 0 (concatD [doc (showString "return"), doc (showString ";")])
-    Cond expr stmt -> prPrec i 0 (concatD [doc (showString "if"), doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 stmt])
     CondElse expr stmt1 stmt2 -> prPrec i 0 (concatD [doc (showString "if"), doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 stmt1, doc (showString "else"), prt 0 stmt2])
+    Cond expr stmt -> prPrec i 0 (concatD [doc (showString "if"), doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 stmt])
     While expr stmt -> prPrec i 0 (concatD [doc (showString "while"), doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 stmt])
     ForTo item expr stmt -> prPrec i 0 (concatD [doc (showString "for"), prt 0 item, doc (showString "to"), prt 0 expr, doc (showString "do"), prt 0 stmt])
     ForDownTo item expr stmt -> prPrec i 0 (concatD [doc (showString "for"), prt 0 item, doc (showString "downto"), prt 0 expr, doc (showString "do"), prt 0 stmt])
+    SPrint expr -> prPrec i 0 (concatD [doc (showString "print("), prt 0 expr, doc (showString ")")])
     SExp expr -> prPrec i 0 (concatD [prt 0 expr, doc (showString ";")])
   prtList _ [] = (concatD [])
   prtList _ (x:xs) = (concatD [prt 0 x, prt 0 xs])
@@ -149,6 +150,8 @@ instance Print Expr where
     ERel expr1 relop expr2 -> prPrec i 2 (concatD [prt 2 expr1, prt 0 relop, prt 3 expr2])
     EAnd expr1 expr2 -> prPrec i 1 (concatD [prt 2 expr1, doc (showString "&&"), prt 1 expr2])
     EOr expr1 expr2 -> prPrec i 0 (concatD [prt 1 expr1, doc (showString "||"), prt 0 expr2])
+    EtoString expr -> prPrec i 0 (concatD [doc (showString "toString("), prt 0 expr, doc (showString ")")])
+    EtoInt expr -> prPrec i 0 (concatD [doc (showString "toInt("), prt 0 expr, doc (showString ")")])
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])
@@ -170,3 +173,5 @@ instance Print RelOp where
     GE -> prPrec i 0 (concatD [doc (showString ">=")])
     EQU -> prPrec i 0 (concatD [doc (showString "==")])
     NE -> prPrec i 0 (concatD [doc (showString "!=")])
+
+

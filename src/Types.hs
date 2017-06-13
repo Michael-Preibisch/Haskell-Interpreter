@@ -56,6 +56,7 @@ data Stmt
     | ForTo Item Expr Stmt
     | ForDownTo Item Expr Stmt
     | SExp Expr
+    | SPrint Expr
   deriving (Eq, Ord, Show, Read)
 
 data Item = NoInit Ident | Init Ident Expr
@@ -64,7 +65,7 @@ data Item = NoInit Ident | Init Ident Expr
 data Type = Int | Str | Bool | Void | Fun Type [Type]
   deriving (Eq, Ord, Show, Read)
 
-data ValueType = VInt Integer | VStr String | VBool Bool | VVoid
+data ValueType = VInt Integer | VStr String | VBool Bool | VVoid | VNone
   deriving (Eq, Ord, Show, Read)
 
 data Expr
@@ -81,6 +82,8 @@ data Expr
     | ERel Expr RelOp Expr
     | EAnd Expr Expr
     | EOr Expr Expr
+    | EtoString Expr
+    | EtoInt Expr
   deriving (Eq, Ord, Show, Read)
 
 data AddOp = Plus | Minus

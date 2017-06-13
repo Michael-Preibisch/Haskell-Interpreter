@@ -24,7 +24,7 @@ BStmt.     Stmt ::= Block ;
 
 Decl.      Stmt ::= Type [Item] ";" ;
 
-NoInit.    Item ::= Ident ; 
+NoInit.    Item ::= Ident ;
 
 Init.      Item ::= Ident "=" Expr ;
 
@@ -36,9 +36,9 @@ Ret.       Stmt ::= "return" Expr ";" ;
 
 VRet.      Stmt ::= "return" ";" ;
 
-Cond.      Stmt ::= "if" "(" Expr ")" Stmt  ;
+CondElse.  Stmt ::= "if" "(" Expr ")" Stmt "else" Stmt ;
 
-CondElse.  Stmt ::= "if" "(" Expr ")" Stmt "else" Stmt  ;
+Cond.      Stmt ::= "if" "(" Expr ")" Stmt  ;
 
 While.     Stmt ::= "while" "(" Expr ")" Stmt ;
 
@@ -46,7 +46,10 @@ ForTo.	   Stmt ::= "for" Item "to" Expr "do" Stmt ;
 
 ForDownTo. Stmt ::= "for" Item "downto" Expr "do" Stmt ;
 
+SPrint.    Stmt ::= "print(" Expr ")" ;
+
 SExp.      Stmt ::= Expr  ";" ;
+
 
 -- Types ---------------------------------------------------
 
@@ -89,6 +92,10 @@ ERel.      Expr2 ::= Expr2 RelOp Expr3 ;
 EAnd.      Expr1 ::= Expr2 "&&" Expr1 ;
 
 EOr.       Expr ::= Expr1 "||" Expr ;
+
+EtoString.   Expr ::= "toString(" Expr ")" ;
+
+EtoInt.      Expr ::= "toInt(" Expr ")" ;
 
 coercions  Expr 6 ;
 

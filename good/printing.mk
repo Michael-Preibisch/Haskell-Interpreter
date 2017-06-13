@@ -5,16 +5,22 @@ string f() {
 void g() {
 	int x;
 	x = 10;
-	printInt(x);
+	print(x);
 }
 
 boolean h() {
-	return (1 < 2);
+	if (1 < 2) {
+		return true;
+	}
+	else {
+		print("lel");
+		return false;
+	}
 }
 
 int main() {
-	printString(f());
+	print(f());
 	g();
-	printBool(h());
+	print(h());
 	return 42;
 }

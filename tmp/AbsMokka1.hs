@@ -27,7 +27,7 @@ data Stmt
     | Ass Ident Expr
     | Ret Expr
     | VRet
-    | CondElse Expr Stmt Stmt
+    | CondElse Expr Block Block
     | Cond Expr Stmt
     | While Expr Stmt
     | ForTo Item Expr Stmt

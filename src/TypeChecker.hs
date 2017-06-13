@@ -48,20 +48,31 @@ checkExprType (EMul e1 _ e2) = do
     t1 <- checkExprType e1
     t2 <- checkExprType e2
     if (t1 == Int && t2 == Int) then return Int
-    else fail ("Type error: trying to multiply " ++ show t1 ++ " and " ++ show t2 ++ ".")
+    else fail ("Type error: trying to multiply/divide " ++ show t1 ++ " and " ++ show t2 ++ ".")
 
 checkExprType (EAdd e1 _ e2) = do
     t1 <- checkExprType e1
     t2 <- checkExprType e2
     if (t1 == Int && t2 == Int) then return Int
     else if (t1 == Str && t2 == Str) then return Str
-    else fail ("Type error: Trying to add " ++ show t1 ++ " and " ++ show t2 ++ ".")
+    else fail ("Type error: Trying to add/substract " ++ show t1 ++ " and " ++ show t2 ++ ".")
 
 checkExprType (EVar iden) = do
   env <- asks (\e -> (vEnv e))
   case (M.lookup iden env) of
-    Nothing -> error "Error: Undeclared variable!"
+    Nothing -> error $ "Error: Undeclared variable: " ++ show iden ++ "!"
     Just e -> return e
+
+{-
+checkExprType (EApp (Ident "print") args) =
+  if (length args /= 1) then
+    error "Cannot print multiple things at once!"
+  else do
+    t <- mapM checkExprType args
+    if (t == [Void]) then
+      error "Cannot print void-type object!"
+    else return Void
+-}
 
 checkExprType (EApp iden args) = do
   fenv <- asks (\e -> (fEnv e))
@@ -118,12 +129,34 @@ checkExprType (EOr e1 e2) = do
   else
     return Bool
 
+checkExprType (EtoString e) = do
+  t1 <- checkExprType e
+  if (t1 == Void) then
+    error "Cannot convert void to string!"
+  else
+    return Str
+
+checkExprType (EtoInt e) = do
+  t1 <- checkExprType e
+  if (t1 == Void) then
+    error "Cannot convert void to int!"
+  else
+    return Int
+
 -- STATEMENTS CHECK
 
 checkStmtType :: Stmt -> TT (Maybe Typing)
 checkStmtType Empty = do
   env <- ask
   return (Just env)
+
+checkStmtType (SPrint expr) = do
+  t <- checkExprType expr
+  env <- ask
+  if (t == Void) then
+    error "Cannot print void!"
+  else
+    return (Just env)
 
 checkStmtType (BStmt (Block stmts)) = do
   checkStmtListType stmts

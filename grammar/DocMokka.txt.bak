@@ -71,7 +71,7 @@ All other symbols are terminals.
   |  |  **|**  | //Ident// ``=`` //Expr// ``;`` 
   |  |  **|**  | ``return`` //Expr// ``;`` 
   |  |  **|**  | ``return`` ``;`` 
-  |  |  **|**  | ``if`` ``(`` //Expr// ``)`` //Stmt// ``else`` //Stmt// 
+  |  |  **|**  | ``if`` ``(`` //Expr// ``)`` //Block// ``else`` //Block// 
   |  |  **|**  | ``if`` ``(`` //Expr// ``)`` //Stmt// 
   |  |  **|**  | ``while`` ``(`` //Expr// ``)`` //Stmt// 
   |  |  **|**  | ``for`` //Item// ``to`` //Expr// ``do`` //Stmt// 
