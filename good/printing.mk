@@ -25,14 +25,20 @@ int rec(int x) {
 	if (x < 1) {
 		return 0;
 	}
-	print("------")
 	print(x);
-	print("----- after_else");
-	return x + rec(x - 1);
+	print("-----");
+	x = x - 1;
+	return x + 1 + rec(x);
 }
 
 
 int main() {
-	print(rec(3));
-	return 42;
+	int x = 10;
+
+	if (x > 1)
+		print(x);
+
+//	print(rec(x));
+//	print(x);
+//	return 42;
 }

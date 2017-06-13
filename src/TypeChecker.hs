@@ -33,6 +33,7 @@ initTyping = Typing {
 
 instance Show FunTyping where
   show (FunTyping a b) = show a ++ " " ++ show b
+
 -- EXPRESSIONS CHECK
 
 checkExprType :: Expr -> TT Type
@@ -63,17 +64,6 @@ checkExprType (EVar iden) = do
     Nothing -> error $ "Error: Undeclared variable: " ++ show iden ++ "!"
     Just e -> return e
 
-{-
-checkExprType (EApp (Ident "print") args) =
-  if (length args /= 1) then
-    error "Cannot print multiple things at once!"
-  else do
-    t <- mapM checkExprType args
-    if (t == [Void]) then
-      error "Cannot print void-type object!"
-    else return Void
--}
-
 checkExprType (EApp iden args) = do
   fenv <- asks (\e -> (fEnv e))
   argTypes <- mapM checkExprType args
@@ -83,13 +73,6 @@ checkExprType (EApp iden args) = do
     else
       error "Type error: Wrong function parameters!"
     Nothing -> error ("Function " ++ (getName iden) ++ " undeclared!")
-{- let funInfo = (fenv M.! iden)  in case funInfo of
-    Just _ ->  if (argTypes == argsType funInfo) then
-        return (Fun (retType funInfo) argTypes)
-      else
-        error "Type error: Wrong function parameters!"
-    Nothing -> error "Error: Calling non-declared function!"
--}
 
 checkExprType (Neg expr) = do
   t1 <- checkExprType expr
@@ -311,8 +294,6 @@ putFunction typ ident_ args = do
     Just _ -> error "Declaration error: Function redeclaration!"
     Nothing -> return (Just $ Typing (vEnv env) (M.insert ident_ (FunTyping typ argsT) (fEnv env)) typ)
 
--- return (Just $ Typing (M.union (vEnv env) argsM) (M.insert ident_ (FunTyping typ argsT) (fEnv env)) typ)
-
 checkArgs :: [Arg] -> [Type]
 checkArgs args = if (length $ L.nub [ids | (Arg _ ids ) <- args]) /= length args then
     error "Declaration error: Function's parameters indentifiers are not unique!"
@@ -335,6 +316,7 @@ showType :: Type -> String
 showType Int = show "Int"
 showType Bool = show "Bool"
 showType Str = show "Bool"
+showType Void = show "Void"
 showType _ = show "Unknown"
 
 getName :: Ident -> String
@@ -342,17 +324,5 @@ getName (Ident s) = s
 
 runCheck :: Expr -> Either String Type
 runCheck e = runIdentity (runErrorT (runReaderT (checkExprType e) initTyping))
---initTyping x = Void
 
---type TT = ReaderT Typing (ErrorT String Identity)
 runProgramCheck p = runIdentity (runErrorT (runReaderT (checkProgram p) initTyping))
-
-extType :: Expr
-extType = EVar (Ident "x")
-
-extArgs = [Arg Int (Ident "x")]
-
-p1 = (Program [])
-p2 = (Program [FnDef Int (Ident "main") [Arg Int (Ident "x")] (Block [Ret (EAdd (EVar (Ident "x")) Plus (ELitInt 111))])])
-p3 = (Program [FnDef Int (Ident "main") [] (Block [ForTo (Init (Ident "i") (ELitInt 1)) (EAdd (ELitInt 9) Plus (ELitInt 1)) (BStmt (Block [CondElse (ERel (EVar (Ident "i")) LE (ELitInt 5)) (SExp (EApp (Ident "printInt") [EApp (Ident "fact") [EVar (Ident "i")]])) (SExp (EApp (Ident "printInt") [EApp (Ident "factr") [EVar (Ident "i")]]))])),Ret (ELitInt 0)])])
-p4 = (Program [FnDef Void (Ident "printInt") [Arg Int (Ident "x")] (Block [VRet]),FnDef Int (Ident "fact") [Arg Int (Ident "i")] (Block [CondElse (ERel (EVar (Ident "i")) LE (EAdd (Neg (ELitInt 7)) Plus (EMul (ELitInt 2) Times (ELitInt 4)))) (Ret (ELitInt 1)) (Ret (EMul (EVar (Ident "i")) Times (EApp (Ident "fact") [EAdd (EVar (Ident "i")) Minus (ELitInt 1)])))]),FnDef Int (Ident "main") [] (Block [Decl Int [NoInit (Ident "i")],ForTo (Init (Ident "i") (ELitInt 1)) (EAdd (ELitInt 9) Plus (ELitInt 1)) (BStmt (Block [SExp (EApp (Ident "printInt") [EApp (Ident "fact") [EVar (Ident "i")]])])),Ret (ELitInt 0)])])

@@ -1,21 +1,10 @@
-CC = ghc
-CFLAGS = -Wall
-
-OBJ =\
-    AbsMokka.o \
-    Evaluator.o \
-	TypeChecker.o \
-    LexMokka.o \
-    ParMokka.o \
-	PrintMokka.o \
-	ErrM.o
-
-all: main
+all:
+	happy -gca ParMokka.y
+	alex -g LexMokka.x
+	ghc --make Main.hs -o Main
 
 clean:
-       rm -f *.o main
-.c.o:
-       $(CC) -c $(INCLUDES) $(CFLAGS) $<
+	-rm -f *.log *.aux *.hi *.o *.dvi
 
-main: $(OBJ)
-       $(CC) $(OBJ) -o main
+distclean: clean
+	-rm -f DocMokka.* LexMokka.* ParMokka.* LayoutMokka.* PrintMokka.* AbsMokka.* ErrM.* SharedString.* ComposOp.* Mokka.dtd XMLMokka.* Makefile*

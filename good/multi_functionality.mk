@@ -13,6 +13,9 @@ int fact(int i) {
 int main () {
     int i = 0; // No-assign declaration with default value 0.
 
+    print(toInt("123456lololo"));
+    print(toInt(false));
+    print(toInt(true));
     // Factorials of first 10 integers will be printed.
     while (i < 9 + 1) {
         print(i);
@@ -30,7 +33,7 @@ int main () {
     else { 			// if-else statement
         int k;
         for k = i*i downto toInt("10") do     // built-in function (String -> Int)
-            print(toString(k));                     // built-in function (Int -> String)
+            print(toString(k));               // built-in function (Int -> String)
     }
 
     return 0;
