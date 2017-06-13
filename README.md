@@ -26,10 +26,9 @@ Language supports:
 - Built-in conversion functions:  toInt, toString.
 - Static typing (program is checked for type correctness before evaluation).
 - Runtime error handling (such as division by 0).
-- Functions (returning values) and procedures,  with recursion.
+- Functions (returning values) and procedures,  with recursion. Parameters passed by value.
 
-
- Parameters passed by value.# Examples
+# Examples
 
 
 ## Code testing multiple functionalities:
